@@ -31,7 +31,7 @@ jobs:
           REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t "$REGISTRY/$REPOSITORY:$IMAGE_TAG" ./app
+          docker build --no-cache -f ./app/Dockerfile -t "$REGISTRY/$REPOSITORY:$IMAGE_TAG" ./app
           docker tag "$REGISTRY/$REPOSITORY:$IMAGE_TAG" "$REGISTRY/$REPOSITORY:latest"
 
       - name: 5. Scan Docker image with Trivy
