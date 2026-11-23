@@ -25,13 +25,6 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Debug project structure
-        run: |
-          pwd
-          ls -la
-          ls -la ./app
-          find . -name Dockerfile -o -name .dockerignore
-
       - name: 4. Build and tag Docker image (runs tests inside Dockerfile)
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
