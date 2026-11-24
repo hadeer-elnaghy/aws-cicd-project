@@ -189,6 +189,7 @@
                 <div class="meta-pill">Release: <strong>v1.0.0</strong></div>
                 <div class="meta-pill">Orchestrator: <strong>Amazon EKS</strong></div>
                 <div class="meta-pill">Security Gate: <strong>Trivy Scan</strong></div>
+                <div class="meta-pill">Database: <strong id="db-status">Checking...</strong></div>
             </div>
         </header>
 
@@ -244,7 +245,50 @@
                     verification.</p>
             </div>
         </section>
+        <h2>Release &amp; RDS Audit Log</h2>
+        <section class="card" style="margin-bottom: 2.5rem;">
+            <div id="releases-list" style="display: grid; gap: 0.75rem;">
+                <p style="color: var(--muted); font-size: 0.9rem;">Loading release records from database...</p>
+            </div>
+        </section>
 
+        <script>
+            async function loadDashboardData() {
+                const dbBadge = document.getElementById("db-status");
+                const listEl = document.getElementById("releases-list");
+
+                try {
+                    const dbRes = await fetch("/health/db");
+                    const dbData = await dbRes.json();
+                    dbBadge.textContent = dbData.db === "connected" ? "RDS Connected" : dbData.db;
+                } catch {
+                    dbBadge.textContent = "Unavailable";
+                }
+
+                try {
+                    const res = await fetch("/api/releases");
+                    if (!res.ok) throw new Error("Failed to load releases");
+                    const rows = await res.json();
+                    if (!rows.length) {
+                        listEl.innerHTML = '<p style="color: var(--muted); font-size: 0.9rem;">No release logs yet.</p>';
+                        return;
+                    }
+                    listEl.innerHTML = rows.map((r) => `
+                <div style="display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap; padding:0.75rem; border:1px solid var(--border); border-radius:8px; background:rgba(11,17,32,0.55);">
+                    <div>
+                        <strong>${r.version}</strong> · <code style="color:var(--accent);">${r.commit_sha}</code> · <span style="color:var(--muted);">${r.stage}</span>
+                        <div style="color:var(--muted); font-size:0.88rem; margin-top:0.2rem;">${r.notes}</div>
+                    </div>
+                    <span style="color:var(--green); font-weight:600; font-size:0.85rem;">${r.status}</span>
+                </div>
+            `).join("");
+                } catch {
+                    listEl.innerHTML = '<p style="color: var(--muted); font-size: 0.9rem;">Database not connected yet—configure RDS &amp; Kubernetes env vars to view logs.</p>';
+                }
+            }
+
+            loadDashboardData();
+        </script>
         <footer>
             Terraform · GitHub Actions · Trivy · Amazon ECR · Amazon EKS
         </footer>

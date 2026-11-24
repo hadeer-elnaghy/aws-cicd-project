@@ -19,6 +19,11 @@ spec:
           image: REPLACE_IMAGE
           ports:
             - containerPort: 3001
+          envFrom:
+            - configMapRef:
+                name: app-db-config
+            - secretRef:
+                name: app-db-secret
           readinessProbe:
             httpGet:
               path: /health

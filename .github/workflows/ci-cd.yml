@@ -63,5 +63,6 @@ jobs:
           kubectl apply -f k8s/service.yaml
           sed -i "s|REPLACE_IMAGE|$IMAGE_URI|g" k8s/deployment.yaml
           kubectl apply -f k8s/deployment.yaml
+          kubectl apply -f k8s/configmap.yaml
           kubectl set image deployment/devops-demo-app devops-demo-app="$IMAGE_URI"
           kubectl rollout status deployment/devops-demo-app --timeout=3m
