@@ -52,7 +52,7 @@ Before running the pipeline or configuring cluster secrets, obtain these details
 * **Private ECR Repository (`ECR_REPOSITORY`):** Exact repository name (e.g., `devops-demo-app`).
 * **EKS Cluster Name (`EKS_CLUSTER_NAME`):** Exact cluster name with worker nodes in private subnets and proper node IAM policies.
 * **IAM & Cluster Access:** Credentials (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`) with ECR push and EKS access permissions, plus cluster access mapping for `kubectl`.
-* **Private Database (RDS) Details:** Endpoint (`DB_HOST`), port (`DB_PORT`, typically `3306`), database name (`DB_NAME`), username (`DB_USER`), and password (`DB_PASSWORD`), with RDS in private subnets and port `3306` allowed only from the EKS security group.
+* **Private Database (RDS) Details:** Endpoint (`DB_HOST`), port (`DB_PORT`, typically `3306`), database name (`DB_NAME`), username (`DB_USER`), and password (`DB_PASSWORD`), with RDS in private subnets and port `5432` allowed only from the EKS security group.
 
 ---
 

@@ -3,6 +3,6 @@ kind: ConfigMap
 metadata:
   name: app-db-config
 data:
-  DB_HOST: "<RDS_ENDPOINT>"
-  DB_PORT: "3306"
+  DB_HOST: "eks-cicd-postgres.c9sia6aeavs7.eu-north-1.rds.amazonaws.com:5432"
+  DB_PORT: "5432"
   DB_NAME: "appdb"
