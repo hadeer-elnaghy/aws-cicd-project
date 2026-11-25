@@ -6,7 +6,8 @@ resource "aws_eks_cluster" "main" {
   version  = var.cluster_version
 
   access_config {
-    authentication_mode = "API_AND_CONFIG_MAP"
+    authentication_mode                         = "API_AND_CONFIG_MAP"
+    bootstrap_cluster_creator_admin_permissions = false
   }
 
   vpc_config {
@@ -59,9 +60,10 @@ resource "aws_eks_access_policy_association" "user_view" {
   cluster_name  = aws_eks_cluster.main.name
   principal_arn = aws_eks_access_entry.user.principal_arn
 
-  policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSAdminViewPolicy"
+  policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
 
   access_scope {
     type = "cluster"
   }
 }
+
