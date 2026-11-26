@@ -22,15 +22,9 @@ spec:
           envFrom:
             - configMapRef:
                 name: app-db-config
-            # - secretRef:
-            #     name: app-db-secret
-
-          env:
-            - name: DB_USER
-              value: "dbadmin"
-            - name: DB_PASSWORD
-              value: "Db1!ae365478606443fcb185"
-
+            - secretRef:
+                name: app-db-secret
+                
           command: ["sh", "-c"]
           args:
             - >-
