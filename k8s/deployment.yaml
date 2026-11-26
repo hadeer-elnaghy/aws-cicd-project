@@ -22,8 +22,8 @@ spec:
           envFrom:
             - configMapRef:
                 name: app-db-config
-            - secretRef:
-                name: app-db-secret
+            # - secretRef:
+            #     name: app-db-secret
 
           env:
             - name: DB_USER
