@@ -64,6 +64,17 @@ jobs:
             --from-literal=DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
             --dry-run=client -o yaml | kubectl apply -f -
             
+      - name: Initialize database schema
+        run: |
+          kubectl apply -f k8s/configmap.yaml
+          kubectl create configmap db-init-sql --from-file=init.sql=db/init.sql \
+            --dry-run=client -o yaml | kubectl apply -f -
+          kubectl delete job db-init --ignore-not-found
+          kubectl apply -f k8s/db-init-job.yaml
+          kubectl wait --for=condition=complete job/db-init --timeout=120s \
+            || { kubectl logs job/db-init; exit 1; }
+          kubectl logs job/db-init
+
       - name: 8. Deploy to Amazon EKS and verify rollout
         env:
           IMAGE_URI: "${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}"
