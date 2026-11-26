@@ -43,11 +43,6 @@ jobs:
           ignore-unfixed: true
           severity: "CRITICAL"
 
-      - name: Debug AWS identity
-        run: |
-          aws sts get-caller-identity
-          aws ecr describe-repositories --region "${{ secrets.AWS_REGION }}" --query 'repositories[].repositoryName'
-
       - name: 6. Push Docker image to Amazon ECR
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -71,3 +66,11 @@ jobs:
           kubectl apply -f k8s/deployment.yaml
           kubectl set image deployment/devops-demo-app devops-demo-app="$IMAGE_URI"
           kubectl rollout status deployment/devops-demo-app --timeout=3m
+
+      - name: Debug on failure
+        if: failure()
+        run: |
+          kubectl get pods -l app=devops-demo-app -o wide
+          kubectl describe pods -l app=devops-demo-app
+          kubectl logs -l app=devops-demo-app --tail=100 --all-containers
+          kubectl get events --sort-by=.lastTimestamp | tail -20
