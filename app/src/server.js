@@ -39,7 +39,7 @@ app.get("/api/releases", async (req, res) => {
         return res.status(503).json({ error: "Database not configured" });
     }
     try {
-        const [rows] = await pool.query(
+        const { rows } = await pool.query(
             "SELECT id, version, commit_sha, stage, status, notes, created_at FROM releases ORDER BY id DESC LIMIT 10"
         );
         res.status(200).json(rows);
@@ -58,11 +58,11 @@ app.post("/api/releases", async (req, res) => {
         return res.status(400).json({ error: "version, commit_sha, and notes are required" });
     }
     try {
-        const [result] = await pool.query(
-            "INSERT INTO releases (version, commit_sha, stage, status, notes) VALUES (?, ?, ?, ?, ?)",
+        const { rows } = await pool.query(
+            "INSERT INTO releases (version, commit_sha, stage, status, notes) VALUES ($1, $2, $3, $4, $5) RETURNING id",
             [String(version).trim(), String(commit_sha).trim(), String(stage).trim(), status, String(notes).trim()]
         );
-        res.status(201).json({ id: result.insertId, version, commit_sha, stage, status, notes });
+        res.status(201).json({ id: rows[0].id, version, commit_sha, stage, status, notes });
     } catch (err) {
         console.error("Failed to insert release:", err);
         res.status(500).json({ error: "Database insert failed" });

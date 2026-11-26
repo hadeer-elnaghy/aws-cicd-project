@@ -1,4 +1,4 @@
-const mysql = require('mysql2/promise');
+const { Pool } = require('pg');
 
 const hasRequiredDbEnv = Boolean(
     process.env.DB_HOST &&
@@ -8,15 +8,14 @@ const hasRequiredDbEnv = Boolean(
 );
 
 const pool = hasRequiredDbEnv
-    ? mysql.createPool({
+    ? new Pool({
         host: process.env.DB_HOST,
         port: Number(process.env.DB_PORT || 5432),
         user: process.env.DB_USER,
         password: process.env.DB_PASSWORD,
         database: process.env.DB_NAME,
-        waitForConnections: true,
-        connectionLimit: 10,
-        queueLimit: 0,
+        max: 10,
+        ssl: { rejectUnauthorized: false }, // RDS Postgres usually requires SSL
     })
     : null;
 
