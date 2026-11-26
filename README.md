@@ -161,13 +161,13 @@ Once the `LoadBalancer` service has an `EXTERNAL-IP` (`*.elb.amazonaws.com`), op
 
 To ensure high availability, proactive failure detection, and fast incident response, the platform integrates **Amazon CloudWatch** and **Amazon SNS**:
 
-* **CloudWatch Container Insights:** Collects compute performance metrics (CPU and memory utilization, disk usage, pod restart counts) across the EKS cluster, worker nodes, and individual application pods.
+* **CloudWatch Container Insights:** Collects compute performance metrics (including CPU and memory utilization, disk usage, pod restart counts) across the EKS cluster, worker nodes, and individual application pods.
 * **CloudWatch Logs:** Centralized log streaming for application containers, pod stdout/stderr, and Kubernetes control plane audit events.
 * **CloudWatch Metric Alarms:** Automated alarms track key health thresholds:
-  * Node or container CPU/Memory utilization exceeding threshold (e.g., > 80%).
-  * Abnormal pod crash loops (`CrashLoopBackOff`) or failed `/health` probes.
-  * Elevated HTTP `5xx` error responses from the application.
-* **Amazon SNS (Simple Notification Service):** CloudWatch alarms automatically publish events to an SNS notification topic (`eks-alert-topic`), dispatching immediate alerts to team communication channels (Email, Slack webhooks, or SMS).
+  * **Container CPU (`container_cpu_request`):** Monitors container CPU demand against requested CPU allocations (`100m`) in Container Insights, triggering an alarm before pods face CPU throttling, starvation, or degradation.
+  * **Workload Health:** Detects abnormal pod restart spikes (`CrashLoopBackOff`) or failed container `/health` probes.
+  * **Application Response:** Monitors elevated HTTP `5xx` error responses from the application.
+* **Amazon SNS (Simple Notification Service):** CloudWatch alarms automatically publish events to an SNS notification topic (`eks-cloudwatch-alerts`), dispatching immediate alerts to team communication channels (Email, Slack webhooks, or SMS).
 
 ---
 
