@@ -90,7 +90,9 @@ jobs:
           kubectl get deployment devops-demo-app -o jsonpath='{.spec.template.spec.containers[0].image}'; echo
           echo "=== Pods ==="
           kubectl get pods -l app=devops-demo-app -o wide
-          kubectl exec deploy/devops-demo-app -- wget -qO- http://localhost:3001/health/db || true
+          echo "=== configmap ==="
+          kubectl get configmap app-db-config -o jsonpath='{.data.DB_HOST}'; echo
+          kubectl exec deploy/devops-demo-app -- printenv DB_HOST
           echo "=== App logs ==="
           kubectl logs -l app=devops-demo-app --tail=100 --prefix || true
           echo "=== Env (no secrets) ==="
