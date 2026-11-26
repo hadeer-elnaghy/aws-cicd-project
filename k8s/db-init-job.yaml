@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-init
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 600
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: psql
+          image: postgres:16
+          envFrom:
+            - configMapRef:
+                name: app-db-config
+            - secretRef:
+                name: app-db-secret
+          command: ["sh", "-c"]
+          args:
+            - >-
+              PGPASSWORD="$DB_PASSWORD" PGSSLMODE=require
+              psql -v ON_ERROR_STOP=1
+              -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME"
+              -f /sql/init.sql
+          volumeMounts:
+            - name: sql
+              mountPath: /sql
+      volumes:
+        - name: sql
+          configMap:
+            name: db-init-sql
