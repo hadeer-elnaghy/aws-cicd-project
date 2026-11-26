@@ -83,7 +83,7 @@ jobs:
           kubectl logs -l app=devops-demo-app --tail=100 --all-containers
           kubectl get events --sort-by=.lastTimestamp | tail -20
 
-       - name: Show app diagnostics
+      - name: Show app diagnostics
         if: always()
         run: |
           echo "=== Image running ==="
