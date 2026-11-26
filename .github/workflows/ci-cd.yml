@@ -85,5 +85,6 @@ jobs:
           echo "=== App logs ==="
           kubectl logs -l app=devops-demo-app --tail=100 --prefix || true
           echo "=== Env (no secrets) ==="
+          kubectl exec deploy/devops-demo-app -- node -e 'console.log({ host: process.env.DB_HOST, port: process.env.DB_PORT, db: process.env.DB_NAME, userSet: Boolean(process.env.DB_USER), passLen: (process.env.DB_PASSWORD || "").length })'
           kubectl get secret app-db-secret -o jsonpath='{.data.DB_USER}' | base64 -d | wc -c
           kubectl get secret app-db-secret -o jsonpath='{.data.DB_PASSWORD}' | base64 -d | wc -c
