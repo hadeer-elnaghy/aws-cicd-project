@@ -56,6 +56,14 @@ jobs:
         run: |
           aws eks update-kubeconfig --name "${{ secrets.EKS_CLUSTER_NAME }}" --region "${{ secrets.AWS_REGION }}"
 
+
+      - name: Create or update DB secret
+        run: |
+          kubectl create secret generic app-db-secret \
+            --from-literal=DB_USER="${{ secrets.DB_USER }}" \
+            --from-literal=DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+            --dry-run=client -o yaml | kubectl apply -f -
+            
       - name: 8. Deploy to Amazon EKS and verify rollout
         env:
           IMAGE_URI: "${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}"
