@@ -125,6 +125,10 @@
             border-top-color: var(--green);
         }
 
+        .step.obs {
+            border-top-color: #06b6d4;
+        }
+
         .step span {
             font-size: 0.75rem;
             text-transform: uppercase;
@@ -182,13 +186,15 @@
             <div class="badge"><span class="dot"></span> Running Live on Amazon EKS</div>
             <h1>Automated Cloud CI/CD &amp; DevSecOps Pipeline</h1>
             <p class="subtitle">
-                End-to-end automated delivery from GitHub commit to Kubernetes production—provisioned with Terraform,
-                scanned with Trivy, stored in Amazon ECR, and deployed on Amazon EKS.
+                End-to-end automated delivery from GitHub commit to Kubernetes production—provisioned with Terraform (Remote S3 backend &amp; DynamoDB state locking),
+                scanned with Trivy, stored in Amazon ECR, deployed on Amazon EKS, and monitored via Amazon CloudWatch &amp; Amazon SNS.
             </p>
             <div class="meta-bar">
                 <div class="meta-pill">Release: <strong>v1.0.0</strong></div>
+                <div class="meta-pill">IaC State: <strong>S3 + DynamoDB</strong></div>
                 <div class="meta-pill">Orchestrator: <strong>Amazon EKS</strong></div>
                 <div class="meta-pill">Security Gate: <strong>Trivy Scan</strong></div>
+                <div class="meta-pill">Observability: <strong>CloudWatch &amp; SNS</strong></div>
                 <div class="meta-pill">Database: <strong id="db-status">Checking...</strong></div>
             </div>
         </header>
@@ -220,29 +226,30 @@
                 <h3>Amazon EKS</h3>
                 <p>Zero-downtime rolling update across Kubernetes pods behind an AWS Load Balancer.</p>
             </div>
+            <div class="step obs">
+                <span>06 · Observability</span>
+                <h3>CloudWatch &amp; SNS</h3>
+                <p>Container Insights (container_cpu_request), log groups &amp; real-time SNS alerts.</p>
+            </div>
         </section>
 
         <h2>Infrastructure &amp; 4-Member Team Ownership</h2>
         <section class="grid-2">
             <div class="card">
                 <h3>App, GitHub Actions &amp; EKS Rollout</h3>
-                <p>Application code, multi-stage Dockerfile, CI/CD workflow, ECR image push, and Kubernetes deployment
-                    rollout.</p>
+                <p>Application code, multi-stage Dockerfile, CI/CD workflow, ECR image push, and Kubernetes deployment rollout.</p>
             </div>
             <div class="card">
                 <h3>Terraform Infrastructure</h3>
-                <p>Infrastructure-as-Code provisioning VPC networking, subnets, IAM roles, Amazon ECR, and Amazon EKS
-                    cluster.</p>
+                <p>Modular Infrastructure-as-Code with <strong>remote S3 backend &amp; DynamoDB state locking</strong>, provisioning VPC networking, subnets, IAM roles, Amazon ECR, and Amazon EKS.</p>
             </div>
             <div class="card">
                 <h3>Deployment &amp; Automation</h3>
-                <p>Automated environment setup, container image delivery, and Kubernetes workload rollout verification.
-                </p>
+                <p>Automated environment setup, container image delivery, and Kubernetes workload rollout verification.</p>
             </div>
             <div class="card">
                 <h3>Security &amp; Observability</h3>
-                <p>Trivy vulnerability policies, container health checks, cluster logs/metrics, and live release
-                    verification.</p>
+                <p>Trivy vulnerability policies, <strong>Amazon CloudWatch</strong> Container Insights (monitoring <code>container_cpu_request</code>), log streams, and <strong>Amazon SNS</strong> alerting.</p>
             </div>
         </section>
         <h2>Release &amp; RDS Audit Log</h2>
@@ -351,7 +358,7 @@
             loadDashboardData();
         </script>
         <footer>
-            Terraform · GitHub Actions · Trivy · Amazon ECR · Amazon EKS
+            Terraform (Remote S3 &amp; DynamoDB State) · GitHub Actions · Trivy · Amazon ECR · Amazon EKS · Amazon CloudWatch · Amazon SNS
         </footer>
     </div>
 </body>
