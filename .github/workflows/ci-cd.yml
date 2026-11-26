@@ -75,14 +75,6 @@ jobs:
           kubectl set image deployment/devops-demo-app devops-demo-app="$IMAGE_URI"
           kubectl rollout status deployment/devops-demo-app --timeout=3m
 
-      - name: Debug on failure
-        if: failure()
-        run: |
-          kubectl get pods -l app=devops-demo-app -o wide
-          kubectl describe pods -l app=devops-demo-app
-          kubectl logs -l app=devops-demo-app --tail=100 --all-containers
-          kubectl get events --sort-by=.lastTimestamp | tail -20
-
       - name: Show app diagnostics
         if: always()
         run: |
@@ -96,7 +88,7 @@ jobs:
           echo "=== App logs ==="
           kubectl logs -l app=devops-demo-app --tail=100 --prefix || true
           echo "=== Env (no secrets) ==="
-          kubectl get secret app-db-secret -o jsonpath='{.data.DB_USER}' | base64 -d; echo
+          kubectl get secret app-db-secret -o jsonpath='{.data.DB_USER}' | base64 -d | wc -c
           kubectl get secret app-db-secret -o jsonpath='{.data.DB_PASSWORD}' | base64 -d | wc -c
           echo "=== Events ==="
           kubectl get events --sort-by=.lastTimestamp | tail -20
