@@ -82,3 +82,18 @@ jobs:
           kubectl describe pods -l app=devops-demo-app
           kubectl logs -l app=devops-demo-app --tail=100 --all-containers
           kubectl get events --sort-by=.lastTimestamp | tail -20
+
+       - name: Show app diagnostics
+        if: always()
+        run: |
+          echo "=== Image running ==="
+          kubectl get deployment devops-demo-app -o jsonpath='{.spec.template.spec.containers[0].image}'; echo
+          echo "=== Pods ==="
+          kubectl get pods -l app=devops-demo-app -o wide
+          kubectl exec deploy/devops-demo-app -- wget -qO- http://localhost:3001/health/db || true
+          echo "=== App logs ==="
+          kubectl logs -l app=devops-demo-app --tail=100 --prefix || true
+          echo "=== Env (no secrets) ==="
+          kubectl exec deploy/devops-demo-app -- printenv | grep -E "DB_HOST|DB_PORT|DB_NAME" || true
+          echo "=== Events ==="
+          kubectl get events --sort-by=.lastTimestamp | tail -20
