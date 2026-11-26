@@ -47,7 +47,7 @@ jobs:
         run: |
           aws sts get-caller-identity
           aws ecr describe-repositories --region "${{ secrets.AWS_REGION }}" --query 'repositories[].repositoryName'
-          
+
       - name: 6. Push Docker image to Amazon ECR
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -65,9 +65,9 @@ jobs:
         env:
           IMAGE_URI: "${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}"
         run: |
+          kubectl apply -f k8s/configmap.yaml
           kubectl apply -f k8s/service.yaml
           sed -i "s|REPLACE_IMAGE|$IMAGE_URI|g" k8s/deployment.yaml
           kubectl apply -f k8s/deployment.yaml
-          kubectl apply -f k8s/configmap.yaml
           kubectl set image deployment/devops-demo-app devops-demo-app="$IMAGE_URI"
           kubectl rollout status deployment/devops-demo-app --timeout=3m
