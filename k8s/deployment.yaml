@@ -24,6 +24,17 @@ spec:
                 name: app-db-config
             - secretRef:
                 name: app-db-secret
+          command: ["sh", "-c"]
+          args:
+            - >-
+              PGPASSWORD="$DB_PASSWORD" PGSSLMODE=require
+              psql -v ON_ERROR_STOP=1
+              -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME"
+              -f /sql/init.sql
+          volumeMounts:
+            - name: sql
+              mountPath: /sqll
+
           readinessProbe:
             httpGet:
               path: /health
@@ -43,3 +54,8 @@ spec:
             limits:
               cpu: "250m"
               memory: "256Mi"
+
+      volumes:
+        - name: sql
+          configMap:
+            name: db-init-sq
