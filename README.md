@@ -1,6 +1,6 @@
 # AWS EKS CI/CD Pipeline (`aws-cicd-project`)
 
-End-to-end CI/CD pipeline and containerized Node.js application deployed to **Amazon EKS** using **GitHub Actions**, **Docker**, **Trivy**, and **Amazon ECR**, with private subnet isolation for compute and stateful/database workloads.
+End-to-end Infrastructure as Code (IaC) and CI/CD pipeline for a containerized Node.js application deployed to **Amazon EKS**. The infrastructure is provisioned and managed using **Terraform**, automated delivery is driven by **GitHub Actions**, **Docker**, **Trivy**, and **Amazon ECR**, with compute and stateful database workloads isolated in private VPC subnets. Monitoring, log aggregation, and real-time alert notifications are powered by **Amazon CloudWatch** and **Amazon SNS**.
 
 ---
 
@@ -10,23 +10,47 @@ End-to-end CI/CD pipeline and containerized Node.js application deployed to **Am
 .
 ├── .github/
 │   └── workflows/
-│       └── ci-cd.yml       # Build, test, Trivy scan, ECR push, and EKS rollout
+│       └── ci-cd.yml           # GitHub Actions CI/CD (test, Trivy scan, ECR push, EKS rollout)
 ├── app/
 │   ├── public/
-│   │   └── index.html
+│   │   └── index.html          # Frontend dashboard UI
 │   ├── src/
-│   │   └── server.js
+│   │   ├── db.js               # PostgreSQL connection pool & query handler
+│   │   └── server.js           # Express API server (/health, /api/releases, static frontend)
 │   ├── tests/
-│   │   └── app.test.js
-│   ├── Dockerfile          # Multi-stage build running tests and packaging app
-│   ├── .dockerignore       # Excludes node_modules, .env, .git, etc. (keeps Dockerfile)
-│   ├── package.json
-│   └── package-lock.json
+│   │   └── app.test.js         # Automated tests for application endpoints
+│   ├── .dockerignore           # Excludes node_modules, .env, and local artifacts from build
+│   ├── Dockerfile              # Multi-stage Docker build running tests & packaging app
+│   ├── package.json            # Node.js project manifest and scripts
+│   └── package-lock.json       # Exact dependency tree lockfile
+├── db/
+│   └── init.sql                # PostgreSQL schema and initial seed data for releases
 ├── k8s/
-│   ├── configmap.yaml      # Non-sensitive DB/app config (DB_HOST, DB_PORT, DB_NAME)
-│   ├── deployment.yaml     # Kubernetes Deployment mounting ConfigMap & Secret via envFrom
-│   └── service.yaml        # Kubernetes Service manifest (LoadBalancer)
-└── README.md
+│   ├── configmap.yaml          # Non-sensitive DB/app config (DB_HOST, DB_PORT, DB_NAME)
+│   ├── db-init-job.yaml        # Kubernetes Job initializing the RDS PostgreSQL schema
+│   ├── deployment.yaml         # Kubernetes Deployment mounting ConfigMap & Secret via envFrom
+│   └── service.yaml            # Kubernetes Service manifest (LoadBalancer)
+├── terraform/
+│   ├── bootstrap/              # S3 bucket & DynamoDB lock table for remote state
+│   │   ├── main.tf
+│   │   ├── outputs.tf
+│   │   ├── providers.tf
+│   │   └── versions.tf
+│   ├── dev/                    # Environment infrastructure orchestration
+│   │   ├── backend.tf          # Remote S3 backend & DynamoDB state locking
+│   │   ├── main.tf             # Module composition (VPC, IAM, ECR, EKS, RDS)
+│   │   ├── outputs.tf          # Infrastructure outputs (ECR URL, EKS cluster, RDS endpoint)
+│   │   ├── providers.tf        # AWS provider setup
+│   │   ├── variables.tf        # Input variable definitions
+│   │   └── versions.tf         # Terraform and AWS provider version constraints
+│   └── modules/                # Reusable Infrastructure-as-Code modules
+│       ├── ecr/                # Amazon ECR container repository
+│       ├── eks/                # Amazon EKS cluster and managed node groups
+│       ├── iam/                # IAM roles and policies for EKS & CI/CD deployment
+│       ├── rds/                # Amazon RDS PostgreSQL instance and subnet groups
+│       └── vpc/                # VPC, public/private subnets, NAT Gateway, and route tables
+├── .gitignore                  # Git ignore rules for build artifacts, state files, and secrets
+└── README.md                   # Project documentation
 ```
 
 ---
@@ -44,15 +68,43 @@ On pushes to `main` (or manual workflow dispatch), `.github/workflows/ci-cd.yml`
 
 ---
 
-## What to Get From AWS
+## Infrastructure Provisioning (Terraform)
 
-Before running the pipeline or configuring cluster secrets, obtain these details from your AWS / Terraform setup:
+All core AWS infrastructure is declared as code under the `terraform/` directory:
 
-* **AWS Region (`AWS_REGION`):** The region where ECR, EKS, VPC subnets, and RDS live.
-* **Private ECR Repository (`ECR_REPOSITORY`):** Exact repository name (e.g., `devops-demo-app`).
-* **EKS Cluster Name (`EKS_CLUSTER_NAME`):** Exact cluster name with worker nodes in private subnets and proper node IAM policies.
-* **IAM & Cluster Access:** Credentials (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`) with ECR push and EKS access permissions, plus cluster access mapping for `kubectl`.
-* **Private Database (RDS) Details:** Endpoint (`DB_HOST`), port (`DB_PORT`, typically `3306`), database name (`DB_NAME`), username (`DB_USER`), and password (`DB_PASSWORD`), with RDS in private subnets and port `5432` allowed only from the EKS security group.
+* **Remote State Bootstrap (`terraform/bootstrap`):** Provisions an S3 bucket (with AES-256 encryption and versioning enabled) and a DynamoDB table for distributed state locking.
+* **Environment Provisioning (`terraform/dev`):** Assembles the environment using reusable modules:
+  * **VPC Module (`modules/vpc`):** Multi-AZ VPC with public subnets (Internet Gateway) and private subnets (NAT Gateway) tagged for Kubernetes integration.
+  * **IAM Module (`modules/iam`):** IAM roles and policies for EKS cluster control plane, worker node groups, and CI/CD deployer access.
+  * **ECR Module (`modules/ecr`):** Private Docker container repository with scan-on-push image vulnerability scanning.
+  * **EKS Module (`modules/eks`):** Managed Kubernetes control plane and node groups running securely in private subnets.
+  * **RDS Module (`modules/rds`):** Private PostgreSQL database instance with a dedicated subnet group, accessible exclusively from the EKS security group on port `5432`.
+
+### Deploying Infrastructure
+
+```bash
+# 1. Bootstrap remote state storage (S3 + DynamoDB)
+cd terraform/bootstrap
+terraform init
+terraform apply -auto-approve
+
+# 2. Deploy core cloud resources
+cd ../dev
+terraform init
+terraform apply -auto-approve
+```
+
+---
+
+## What to Get From AWS / Terraform
+
+Before running the pipeline or configuring cluster secrets, obtain these details directly from `terraform output` (or the AWS console):
+
+* **AWS Region (`AWS_REGION`):** Target AWS region (e.g., `eu-north-1` or `eu-central-1`).
+* **Private ECR Repository (`ECR_REPOSITORY`):** Repository name obtained from `terraform output ecr_repository_url`.
+* **EKS Cluster Name (`EKS_CLUSTER_NAME`):** Cluster name obtained from `terraform output eks_cluster_name`.
+* **IAM & Cluster Access:** Credentials (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`) with ECR push and EKS access permissions, mapped into EKS access entries.
+* **Private Database (RDS) Details:** Endpoint (`DB_HOST` from `terraform output rds_endpoint` / `rds_address`), port (`DB_PORT`, default `5432` for PostgreSQL), database name (`DB_NAME`), username (`DB_USER`), and password (`DB_PASSWORD`), with RDS in private subnets and port `5432` allowed only from the EKS security group.
 
 ---
 
@@ -67,20 +119,6 @@ Configure these under **GitHub Repository → Settings → Secrets and variables
 | `AWS_REGION` | AWS region where ECR, EKS, and RDS reside | `eu-central-1` |
 | `ECR_REPOSITORY` | Private ECR repository name | `devops-demo-app` |
 | `EKS_CLUSTER_NAME` | Target Amazon EKS cluster name | `devops-demo-cluster` |
-
----
-
-## Kubernetes Secret (`app-db-secret`)
-
-Point `kubectl` to your EKS cluster and create the secret directly on the cluster (outside Git) so database credentials are injected into your pods without being committed to the repository:
-
-```bash
-aws eks update-kubeconfig --name <EKS_CLUSTER_NAME> --region <AWS_REGION>
-
-kubectl create secret generic app-db-secret \
-  --from-literal=DB_USER="<DB_USERNAME>" \
-  --from-literal=DB_PASSWORD="<DB_PASSWORD>"
-```
 
 ---
 
@@ -119,12 +157,37 @@ Once the `LoadBalancer` service has an `EXTERNAL-IP` (`*.elb.amazonaws.com`), op
 
 ---
 
+## Observability & Alerting (Amazon CloudWatch & SNS)
+
+To ensure high availability, proactive failure detection, and fast incident response, the platform integrates **Amazon CloudWatch** and **Amazon SNS**:
+
+* **CloudWatch Container Insights:** Collects compute performance metrics (CPU and memory utilization, disk usage, pod restart counts) across the EKS cluster, worker nodes, and individual application pods.
+* **CloudWatch Logs:** Centralized log streaming for application containers, pod stdout/stderr, and Kubernetes control plane audit events.
+* **CloudWatch Metric Alarms:** Automated alarms track key health thresholds:
+  * Node or container CPU/Memory utilization exceeding threshold (e.g., > 80%).
+  * Abnormal pod crash loops (`CrashLoopBackOff`) or failed `/health` probes.
+  * Elevated HTTP `5xx` error responses from the application.
+* **Amazon SNS (Simple Notification Service):** CloudWatch alarms automatically publish events to an SNS notification topic (`eks-alert-topic`), dispatching immediate alerts to team communication channels (Email, Slack webhooks, or SMS).
+
+---
+
 ## Cleanup (Avoid Idle AWS Charges)
 
-When finished testing or presenting, remove billable AWS resources in reverse order:
+When finished testing or presenting, tear down billable AWS resources in reverse order to avoid lingering charges:
 
-1. Delete Kubernetes resources (`kubectl delete -f k8s/`) and verify no leftover Load Balancers remain in **EC2 → Load Balancers**.
-2. Delete the **RDS database instance** (if created) before deleting VPC/subnets.
-3. Delete the EKS **Node group**, then delete the **EKS cluster**.
-4. Delete NAT Gateways / unused VPC resources if provisioned for testing.
-5. Delete test images/repositories in **ECR** and rotate/remove temporary IAM access keys if no longer needed.
+1. Delete Kubernetes workloads to automatically deprovision ELB load balancers:
+   ```bash
+   kubectl delete -f k8s/
+   ```
+2. Verify in **EC2 → Load Balancers** that no orphan load balancers remain.
+3. Destroy core infrastructure via Terraform:
+   ```bash
+   cd terraform/dev
+   terraform destroy -auto-approve
+   ```
+4. (Optional) Destroy remote state backend if no longer needed:
+   ```bash
+   cd ../bootstrap
+   terraform destroy -auto-approve
+   ```
+5. Rotate or remove temporary IAM access keys used for GitHub Actions.
