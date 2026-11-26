@@ -22,15 +22,8 @@ spec:
           envFrom:
             - configMapRef:
                 name: app-db-config
-            # - secretRef:
-            #     name: app-db-secret
-
-          env:
-            - name: DB_PASSWORD
-              value: "Db1!ae365478606443fcb185"
-            - name: DB_USER
-              value: "dbadmin"
-
+            - secretRef:
+                name: app-db-secret
           readinessProbe:
             httpGet:
               path: /health
